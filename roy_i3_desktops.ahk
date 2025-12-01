@@ -100,7 +100,7 @@ moveCurrentWindowToDesktop(n) {
 #Enter::Run, cmd
 #r::Run, wt
 #t::Run, notepad
-#d::Run, explorer
+#d::Run, flow_launcher.lnk
 #+r::Reload
 #+q::WinClose, A
 
