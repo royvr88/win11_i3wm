@@ -122,3 +122,8 @@ moveCurrentWindowToDesktop(n) {
     WinMove, A,, mLeft, mTop, mRight-mLeft, mBottom-mTop
     WinMaximize, A
 return
+
+
+
+!Tab::
+Return
