@@ -34,11 +34,12 @@ mapDesktopsFromRegistry()
 {
     global curr_desktop, desktop_count, MAX_DESKTOP_COUNT
 
-    ; Get the current desktop UUID. Length should be 32 normally.
     id_length := 32
     session_id := getSessionId()
     if (session_id) {
-        RegRead, curr_desktop_id, HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SessionInfo\%session_id%\VirtualDesktops, CurrentVirtualDesktop
+        RegRead, curr_desktop_id
+            , HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SessionInfo\%session_id%\VirtualDesktops
+            , CurrentVirtualDesktop
         if (curr_desktop_id) {
             id_length := StrLen(curr_desktop_id)
         } else {
@@ -46,8 +47,11 @@ mapDesktopsFromRegistry()
         }
     }
 
-    ; Get all desktop IDs
-    RegRead, desktop_list, HKEY_CURRENT_USER, SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VirtualDesktops, VirtualDesktopIDs
+    RegRead, desktop_list
+        , HKEY_CURRENT_USER
+        , SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VirtualDesktops
+        , VirtualDesktopIDs
+
     if (desktop_list) {
         desktop_list_length := StrLen(desktop_list)
         desktop_count := Floor(desktop_list_length / id_length)
@@ -55,13 +59,10 @@ mapDesktopsFromRegistry()
         desktop_count := 1
     }
 
-    ; Figure out which desktop we’re on
     i := 0
     while (curr_desktop_id and i < desktop_count) {
         start_pos := (i * id_length) + 1
         desktop_id_iter := SubStr(desktop_list, start_pos, id_length)
-        OutputDebug, Iterator points at %desktop_id_iter% (index %i%).
-
         if (desktop_id_iter = curr_desktop_id) {
             curr_desktop := i + 1
             OutputDebug, Current desktop number is %curr_desktop% (ID %desktop_id_iter%).
@@ -70,7 +71,6 @@ mapDesktopsFromRegistry()
         i++
     }
 
-    ; Ensure we always have MAX_DESKTOP_COUNT desktops
     while (desktop_count < MAX_DESKTOP_COUNT) {
         Send, #^d
         desktop_count++
@@ -85,16 +85,15 @@ getSessionId()
         OutputDebug, Error getting current process ID: %ErrorLevel%
         return
     }
-    OutputDebug, Current Process Id: %process_id%
 
     DllCall("ProcessIdToSessionId", "UInt", process_id, "UInt*", session_id)
     if ErrorLevel {
-        OutputDebug, Error getting session ID: %ErrorLevel%
+        OutputDebug, Error getting current session ID: %ErrorLevel%
         return
     }
-    OutputDebug, Current Session ID: %session_id%
     return session_id
 }
+
 
 ; ============================
 ; CORE SWITCH / MOVE LOGIC
@@ -102,9 +101,8 @@ getSessionId()
 switchToDesktop(target_desktop)
 {
     global curr_desktop, desktop_count, last_desktop
-    mapDesktopsFromRegistry()  ; resync with reality (in case you switched via Win+Ctrl+Arrow)
+    mapDesktopsFromRegistry()
 
-    ; Don’t attempt to switch to an invalid desktop
     if (target_desktop > desktop_count || target_desktop < 1) {
         OutputDebug, [invalid] target: %target_desktop% current: %curr_desktop%
         return
@@ -112,17 +110,14 @@ switchToDesktop(target_desktop)
 
     last_desktop := curr_desktop
 
-    ; Prevent intermediate windows from stealing the Win+Ctrl+Arrow combo
     WinActivate, ahk_class Shell_TrayWnd
 
-    ; Go right until we reach the target
     while (curr_desktop < target_desktop) {
         Send {LWin down}{LCtrl down}{Right}{LCtrl up}{LWin up}
         curr_desktop++
         OutputDebug, [right] target: %target_desktop% current: %curr_desktop%
     }
 
-    ; Go left until we reach the target
     while (curr_desktop > target_desktop) {
         Send {LWin down}{LCtrl down}{Left}{LCtrl up}{LWin up}
         curr_desktop--
@@ -147,14 +142,13 @@ isWindowNonMinimized(window_id) {
 
 getForemostWindowId(n)
 {
-    n := n - 1 ; Desktops start at 0 in DLL/Windows, 1 in this script
+    n := n - 1
 
-    ; win_id_list contains a list of windows IDs ordered from top to bottom.
     WinGet win_id_list, List
     Loop %win_id_list% {
         window_id := win_id_list%A_Index%
         is_window_on_desktop := DllCall(is_window_on_curr_desktop, "UInt", window_id, "UInt", n)
-        if (is_window_on_desktop == 1) {
+        if (is_window_on_desktop = 1) {
             return window_id
         }
     }
@@ -163,6 +157,7 @@ getForemostWindowId(n)
 
 moveCurrentWindowToDesktop(target_desktop) {
     global desktop_count
+
     if (target_desktop < 1 || target_desktop > desktop_count)
         return
 
@@ -170,27 +165,37 @@ moveCurrentWindowToDesktop(target_desktop) {
     if (!active_hwnd)
         return
 
+    active_hwnd := active_hwnd + 0   ; ensure numeric handle
+
     DllCall(move_window_to_desktop, "UInt", active_hwnd, "UInt", target_desktop - 1)
-    ; Do NOT follow the window – you asked to stay on current desktop
-    ; If you *do* want to follow it, replace the line above with:
-    ; switchToDesktop(target_desktop)
+
+    ; We stay on this desktop → retile remaining windows here
+    Sleep, 150
+    ReTileAll()
 }
 
-; ============================
-; HOTKEYS
-; ============================
-; Win+1..9 -> switch to desktop N
-#1::switchToDesktop(1)
-#2::switchToDesktop(2)
-#3::switchToDesktop(3)
-#4::switchToDesktop(4)
-#5::switchToDesktop(5)
-#6::switchToDesktop(6)
-#7::switchToDesktop(7)
-#8::switchToDesktop(8)
-#9::switchToDesktop(9)
 
-; Win+Shift+1..9 -> move current window to desktop N (stay on current desktop)
+
+
+UpdateCurrentDesktop() {
+    mapDesktopsFromRegistry()
+}
+
+#1::(UpdateCurrentDesktop(), switchToDesktop(1))
+#2::(UpdateCurrentDesktop(), switchToDesktop(2))
+#3::(UpdateCurrentDesktop(), switchToDesktop(3))
+#4::(UpdateCurrentDesktop(), switchToDesktop(4))
+#5::(UpdateCurrentDesktop(), switchToDesktop(5))
+#6::(UpdateCurrentDesktop(), switchToDesktop(6))
+#7::(UpdateCurrentDesktop(), switchToDesktop(7))
+#8::(UpdateCurrentDesktop(), switchToDesktop(8))
+#9::(UpdateCurrentDesktop(), switchToDesktop(9))
+
+
+; ============================
+; HOTKEYS: DESKTOPS
+; ============================
+
 #+1::moveCurrentWindowToDesktop(1)
 #+2::moveCurrentWindowToDesktop(2)
 #+3::moveCurrentWindowToDesktop(3)
@@ -201,114 +206,202 @@ moveCurrentWindowToDesktop(target_desktop) {
 #+8::moveCurrentWindowToDesktop(8)
 #+9::moveCurrentWindowToDesktop(9)
 
+#<!d::ReTileAll()     ; Win + ADlt + D tile-all
 
-
-
-; =====================================
-;  FIXED TILING FUNCTIONS (AHK v1)
-;  - Win+Shift+H/J/K/L for splits
-;  - Automatically handles maximized windows
-; =====================================
-
-Tile_PrepareWindow() {
-    WinGet, mmx, MinMax, A
-    if (mmx = 1)   ; window is maximized
-        WinRestore, A
-}
-
+;==========================================================
+; BASIC TILING
+;==========================================================
 Tile_Left() {
-    Tile_PrepareWindow()
-    WinGet, h, ID, A
-    SysGet, mon, MonitorWorkArea
-    WinMove, ahk_id %h%, , monLeft, monTop, (monRight-monLeft)//2, (monBottom-monTop)
+    Tile_Prepare()
+    GetWorkArea(L,T,R,B)
+    W := (R-L)//2
+    WinMove, A,, L, T, W, B-T
 }
 
 Tile_Right() {
-    Tile_PrepareWindow()
-    WinGet, h, ID, A
-    SysGet, mon, MonitorWorkArea
-    half := (monRight - monLeft) // 2
-    WinMove, ahk_id %h%, , monLeft + half, monTop, half, (monBottom-monTop)
+    Tile_Prepare()
+    GetWorkArea(L,T,R,B)
+    W := (R-L)//2
+    WinMove, A,, L+W, T, W, B-T
 }
 
 Tile_Top() {
-    Tile_PrepareWindow()
-    WinGet, h, ID, A
-    SysGet, mon, MonitorWorkArea
-    WinMove, ahk_id %h%, , monLeft, monTop, (monRight-monLeft), (monBottom-monTop)//2
+    Tile_Prepare()
+    GetWorkArea(L,T,R,B)
+    H := (B-T)//2
+    WinMove, A,, L, T, R-L, H
 }
 
 Tile_Bottom() {
-    Tile_PrepareWindow()
-    WinGet, h, ID, A
-    SysGet, mon, MonitorWorkArea
-    half_h := (monBottom - monTop) // 2
-    WinMove, ahk_id %h%, , monLeft, monTop + half_h, (monRight-monLeft), half_h
+    Tile_Prepare()
+    GetWorkArea(L,T,R,B)
+    H := (B-T)//2
+    WinMove, A,, L, T+H, R-L, H
 }
 
 Tile_Full() {
-    Tile_PrepareWindow()
-    WinGet, h, ID, A
-    SysGet, mon, MonitorWorkArea
-    WinMove, ahk_id %h%, , monLeft, monTop, (monRight-monLeft), (monBottom-monTop)
+    Tile_Prepare()
+    GetWorkArea(L,T,R,B)
+    WinMove, A,, L, T, R-L, B-T
 }
 
-; -------------------------
-; Quadrants
-; -------------------------
+
+;==========================================================
+; QUADRANTS
+;==========================================================
 Tile_TopLeft() {
-    Tile_PrepareWindow()
-    WinGet, h, ID, A
-    SysGet, mon, MonitorWorkArea
-    w := (monRight-monLeft)//2
-    hgt := (monBottom-monTop)//2
-    WinMove, ahk_id %h%, , monLeft, monTop, w, hgt
+    Tile_Prepare()
+    GetWorkArea(L,T,R,B)
+    W := (R-L)//2
+    H := (B-T)//2
+    WinMove, A,, L, T, W, H
 }
 
 Tile_TopRight() {
-    Tile_PrepareWindow()
-    WinGet, h, ID, A
-    SysGet, mon, MonitorWorkArea
-    w := (monRight-monLeft)//2
-    hgt := (monBottom-monTop)//2
-    WinMove, ahk_id %h%, , monLeft + w, monTop, w, hgt
+    Tile_Prepare()
+    GetWorkArea(L,T,R,B)
+    W := (R-L)//2
+    H := (B-T)//2
+    WinMove, A,, L+W, T, W, H
 }
 
 Tile_BottomLeft() {
-    Tile_PrepareWindow()
-    WinGet, h, ID, A
-    SysGet, mon, MonitorWorkArea
-    w := (monRight-monLeft)//2
-    hgt := (monBottom-monTop)//2
-    WinMove, ahk_id %h%, , monLeft, monTop + hgt, w, hgt
+    Tile_Prepare()
+    GetWorkArea(L,T,R,B)
+    W := (R-L)//2
+    H := (B-T)//2
+    WinMove, A,, L, T+H, W, H
 }
 
 Tile_BottomRight() {
-    Tile_PrepareWindow()
-    WinGet, h, ID, A
-    SysGet, mon, MonitorWorkArea
-    w := (monRight-monLeft)//2
-    hgt := (monBottom-monTop)//2
-    WinMove, ahk_id %h%, , monLeft + w, monTop + hgt, w, hgt
+    Tile_Prepare()
+    GetWorkArea(L,T,R,B)
+    W := (R-L)//2
+    H := (B-T)//2
+    WinMove, A,, L+W, T+H, W, H
 }
 
 
-
-
 ; ============================
-;  TILING HOTKEYS (i3-like)
+;  TILING HOTKEYS (i3-ish)
 ; ============================
-
 #!h::Tile_Left()
 #!l::Tile_Right()
 #!k::Tile_Top()
 #!j::Tile_Bottom()
 
-; Fullscreen tile
 #f::Tile_Full()
 
+#!1::Tile_TopLeft()
+#!2::Tile_TopRight()
+#!3::Tile_BottomLeft()
+#!4::Tile_BottomRight()
 
-#!1::Tile_TopLeft()       ; Win+Ctrl+1
-#!2::Tile_TopRight()      ; Win+Ctrl+2
-#!3::Tile_BottomLeft()    ; Win+Ctrl+3
-#!4::Tile_BottomRight()   ; Win+Ctrl+4
+
+
+;==========================================================
+; HOVER-TO-FOCUS (focus follows mouse)
+;==========================================================
+#InstallMouseHook
+SetTimer, WatchMouse, 50
+return
+
+WatchMouse:
+    MouseGetPos,,, id
+    if (!id)
+        return
+
+    WinGetClass, cls, ahk_id %id%
+    if (cls = "Shell_TrayWnd" or cls = "WorkerW" or cls = "Progman")
+        return
+
+    if (id != last) {
+        last := id
+        WinActivate, ahk_id %id%
+    }
+return
+
+
+
+;==========================================================
+; TILING HELPERS
+;==========================================================
+GetWorkArea(ByRef L, ByRef T, ByRef R, ByRef B) {
+    SysGet, mon, MonitorWorkArea
+    L := monLeft
+    T := monTop
+    R := monRight
+    B := monBottom
+}
+
+Tile_Prepare() {
+    WinGet, mmx, MinMax, A
+    if (mmx = 1)
+        WinRestore, A
+}
+
+
+
+;==========================================================
+; CLOSE AND RELAYOUT
+;==========================================================
+CloseWindowAndRelayout() {
+    WinGet, hwnd, ID, A
+    if (!hwnd)
+        return
+    WinClose, ahk_id %hwnd%
+    Sleep, 150
+    ReTileAll()
+}
+ReTileAll() {
+    global curr_desktop
+
+    WinGet, idlist, List
+    arr := []
+
+    Loop %idlist% {
+        id := idlist%A_Index%
+
+        ; Only windows on current desktop
+        if !IsOnCurrentDesktop(id)
+            continue
+
+        ; Ignore taskbar / desktop / shell
+        WinGetClass, cls, ahk_id %id%
+        if (cls = "Shell_TrayWnd" or cls = "WorkerW" or cls = "Progman")
+            continue
+
+        ; Ignore minimized
+        WinGet, mmx, MinMax, ahk_id %id%
+        if (mmx = -1)
+            continue
+
+        arr.Push(id)
+    }
+
+    count := arr.Length()
+    if (count = 0)
+        return
+
+    GetWorkArea(L,T,R,B)
+    width := (R-L) // count
+
+    Loop %count% {
+        idx := A_Index
+        id := arr[idx]
+        x := L + (idx-1)*width
+        WinMove, ahk_id %id%,, x, T, width, B-T
+    }
+}
+
+
+IsOnCurrentDesktop(hwnd) {
+    global curr_desktop
+    ; curr_desktop is 1-based, DLL expects 0-based index
+    return DllCall(is_window_on_curr_desktop, "UInt", hwnd, "UInt", curr_desktop-1)
+}
+
+; SUPER+SHIFT+Q -> close window and relayout
+#+q::CloseWindowAndRelayout()
+
+
