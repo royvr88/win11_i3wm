@@ -175,3 +175,8 @@ Optional upgrades:
 - AutoHotkey v1.1  
 - Flow Launcher
 
+# 9 Workspace indicator system tray icon
+
+Optionally one can use the `desktop_indicator.py` file. To autostart this, create a shortcut to `run_indicator.bat` (by rightclicking the bat file -> `create shortcut`).
+Place this shortcut in `shell:startup`.
+
