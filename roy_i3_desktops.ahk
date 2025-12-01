@@ -98,7 +98,6 @@ moveCurrentWindowToDesktop(n) {
 
 #n::Run, brave
 #Enter::Run, cmd
-#r::Run, wt
 #t::Run, notepad
 #d::Run, flow_launcher.lnk
 #+r::Reload
