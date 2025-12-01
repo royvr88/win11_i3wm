@@ -6,6 +6,7 @@ This setup recreates ~80% of i3wm workflow on Windows 11 with:
 - **FancyWM** for automatic tiling, splits, stacking, and moving windows like i3
 - **AutoHotkey** for i3-style workspace switching (`Super+1..9`), moving windows (`Super+Shift+1..9`), launching apps, and a safe fullscreen mode
 - **Ease of Access** → *Activate window on hover* (a hack to mimic sloppy focus)
+- **Flow Launcher** for dmenu-like starting apps
 
 This README explains the full stack and provides a hotkey reference.
 
@@ -105,7 +106,7 @@ Annoying, but still the most workable option.
 | Open CMD | **Super + Enter** | classic i3 feel |
 | Open Windows Terminal | **Super + r** | |
 | Open Notepad | **Super + t** | |
-| Open Explorer | **Super + d** | |
+| Open Flow Launcher | **Super + d** | |
 | Reload AHK | **Super + Shift + r** | |
 | Close window | **Super + Shift + q** | |
 | FancyWM-safe fullscreen | **Super + f** | Should not break tiling layout |
@@ -162,7 +163,6 @@ A shockingly close approximation of i3wm on Windows 11.
 
 Optional upgrades:
 
-- Add Rofi-like launcher (Flow Launcher or PowerToys Run)
 - Add key-sequence bindings like i3 (chording mode)
 - Add swallow-window behavior (AHK scriptable)
 
@@ -173,4 +173,5 @@ Optional upgrades:
 - FancyWM: https://github.com/FancyWM/fancywm  
 - VirtualDesktopAccessor.dll  
 - AutoHotkey v1.1  
+- Flow Launcher
 
