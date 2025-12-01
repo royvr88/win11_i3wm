@@ -200,3 +200,115 @@ moveCurrentWindowToDesktop(target_desktop) {
 #+7::moveCurrentWindowToDesktop(7)
 #+8::moveCurrentWindowToDesktop(8)
 #+9::moveCurrentWindowToDesktop(9)
+
+
+
+
+; =====================================
+;  FIXED TILING FUNCTIONS (AHK v1)
+;  - Win+Shift+H/J/K/L for splits
+;  - Automatically handles maximized windows
+; =====================================
+
+Tile_PrepareWindow() {
+    WinGet, mmx, MinMax, A
+    if (mmx = 1)   ; window is maximized
+        WinRestore, A
+}
+
+Tile_Left() {
+    Tile_PrepareWindow()
+    WinGet, h, ID, A
+    SysGet, mon, MonitorWorkArea
+    WinMove, ahk_id %h%, , monLeft, monTop, (monRight-monLeft)//2, (monBottom-monTop)
+}
+
+Tile_Right() {
+    Tile_PrepareWindow()
+    WinGet, h, ID, A
+    SysGet, mon, MonitorWorkArea
+    half := (monRight - monLeft) // 2
+    WinMove, ahk_id %h%, , monLeft + half, monTop, half, (monBottom-monTop)
+}
+
+Tile_Top() {
+    Tile_PrepareWindow()
+    WinGet, h, ID, A
+    SysGet, mon, MonitorWorkArea
+    WinMove, ahk_id %h%, , monLeft, monTop, (monRight-monLeft), (monBottom-monTop)//2
+}
+
+Tile_Bottom() {
+    Tile_PrepareWindow()
+    WinGet, h, ID, A
+    SysGet, mon, MonitorWorkArea
+    half_h := (monBottom - monTop) // 2
+    WinMove, ahk_id %h%, , monLeft, monTop + half_h, (monRight-monLeft), half_h
+}
+
+Tile_Full() {
+    Tile_PrepareWindow()
+    WinGet, h, ID, A
+    SysGet, mon, MonitorWorkArea
+    WinMove, ahk_id %h%, , monLeft, monTop, (monRight-monLeft), (monBottom-monTop)
+}
+
+; -------------------------
+; Quadrants
+; -------------------------
+Tile_TopLeft() {
+    Tile_PrepareWindow()
+    WinGet, h, ID, A
+    SysGet, mon, MonitorWorkArea
+    w := (monRight-monLeft)//2
+    hgt := (monBottom-monTop)//2
+    WinMove, ahk_id %h%, , monLeft, monTop, w, hgt
+}
+
+Tile_TopRight() {
+    Tile_PrepareWindow()
+    WinGet, h, ID, A
+    SysGet, mon, MonitorWorkArea
+    w := (monRight-monLeft)//2
+    hgt := (monBottom-monTop)//2
+    WinMove, ahk_id %h%, , monLeft + w, monTop, w, hgt
+}
+
+Tile_BottomLeft() {
+    Tile_PrepareWindow()
+    WinGet, h, ID, A
+    SysGet, mon, MonitorWorkArea
+    w := (monRight-monLeft)//2
+    hgt := (monBottom-monTop)//2
+    WinMove, ahk_id %h%, , monLeft, monTop + hgt, w, hgt
+}
+
+Tile_BottomRight() {
+    Tile_PrepareWindow()
+    WinGet, h, ID, A
+    SysGet, mon, MonitorWorkArea
+    w := (monRight-monLeft)//2
+    hgt := (monBottom-monTop)//2
+    WinMove, ahk_id %h%, , monLeft + w, monTop + hgt, w, hgt
+}
+
+
+
+
+; ============================
+;  TILING HOTKEYS (i3-like)
+; ============================
+
+#!h::Tile_Left()
+#!l::Tile_Right()
+#!k::Tile_Top()
+#!j::Tile_Bottom()
+
+; Fullscreen tile
+#f::Tile_Full()
+
+
+#!1::Tile_TopLeft()       ; Win+Ctrl+1
+#!2::Tile_TopRight()      ; Win+Ctrl+2
+#!3::Tile_BottomLeft()    ; Win+Ctrl+3
+#!4::Tile_BottomRight()   ; Win+Ctrl+4
