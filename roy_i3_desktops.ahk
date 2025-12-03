@@ -124,8 +124,93 @@ return
 
 
 
-!Tab::
-Return
 
 
+#Requires AutoHotkey v1
+
+; -------- HELPER: Get window rectangle --------
+GetWinRect(hwnd, ByRef x, ByRef y, ByRef w, ByRef h) {
+    VarSetCapacity(rect, 16, 0)
+    DllCall("GetWindowRect", "Ptr", hwnd, "Ptr", &rect)
+    x := NumGet(rect, 0, "Int")
+    y := NumGet(rect, 4, "Int")
+    w := NumGet(rect, 8, "Int") - x
+    h := NumGet(rect, 12, "Int") - y
+}
+
+; -------- HELPER: Get all visible windows --------
+GetVisibleWindows() {
+    WinGet, idList, List
+    windows := []
+    Loop % idList {
+        hwnd := idList%A_Index%
+        WinGet, style, Style, ahk_id %hwnd%
+        WinGet, exStyle, ExStyle, ahk_id %hwnd%
+        if (style & 0x10000000) && !(exStyle & 0x80)  ; WS_VISIBLE, not toolwindow
+            windows.Push(hwnd)
+    }
+    return windows
+}
+
+; -------- CORE: Focus window in direction --------
+FocusDirection(direction) {
+    WinGet, active, ID, A
+    if (!active) {
+        return
+    }
+
+    GetWinRect(active, ax, ay, aw, ah)
+    acx := ax + aw/2
+    acy := ay + ah/2
+
+    windows := GetVisibleWindows()
+    best := ""
+    bestDist := 99999
+
+    for index, hwnd in windows {
+        if (hwnd = active)
+            continue
+
+        GetWinRect(hwnd, x, y, w, h)
+        cx := x + w/2
+        cy := y + h/2
+
+        dx := cx - acx
+        dy := cy - acy
+
+        if (direction = "left"  && dx < 0 && Abs(dy) < Abs(dx) * 1.5) {
+            dist := Abs(dx)
+        }
+        else if (direction = "right" && dx > 0 && Abs(dy) < Abs(dx) * 1.5) {
+            dist := Abs(dx)
+        }
+        else if (direction = "up"    && dy < 0 && Abs(dx) < Abs(dy) * 1.5) {
+            dist := Abs(dy)
+        }
+        else if (direction = "down"  && dy > 0 && Abs(dx) < Abs(dy) * 1.5) {
+            dist := Abs(dy)
+        }
+        else {
+            continue
+        }
+
+        if (dist < bestDist) {
+            bestDist := dist
+            best := hwnd
+        }
+    }
+
+    if (best) {
+        WinActivate, ahk_id %best%
+    }
+}
+
+
+
+
+; -------- HOTKEYS --------
+#Left::FocusDirection("left")
+#Right::FocusDirection("right")
+#Up::FocusDirection("up")
+#Down::FocusDirection("down")
 
