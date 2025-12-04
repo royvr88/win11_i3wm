@@ -10,6 +10,34 @@ This setup recreates ~80% of i3wm workflow on Windows 11 with:
 
 This README explains the full stack and provides a hotkey reference.
 
+# 0. Installation instructions
+
+## 0.1 FancyWM, AutoHotKey and Flow Launcher
+For installing FancyWM, Flow launcher and AutoHotkey use WinGet:
+```
+winget install fancywm
+winget install -e --id AutoHotkey.AutoHotkey
+winget install -e --id Flow-Launcher.Flow-Launcher
+```
+
+## 0.2 Hover on focus
+
+See [3. Sloppy focus](#3-sloppy-focus)
+
+## 0.3 AutoHotkey configuration
+
+To enable the AHK-script on startup, download or clone this repository.
+Create a shortcut to `roy_i3_desktops.ahk` and move this shortcut to `shell:startup` directory.
+
+## 0.4 FancyWM configuration
+
+At least add the settings from [the example config](#1-fancywm-configuration) to your own `settings.json`. This file is found at `C:\Users\rhedenburg\AppData\Local\Packages\2203VeselinKaraganev.FancyWM_9x2ndwrcmyd2c\LocalCache\Roaming\FancyWM` (Store install) or `%AppData%\FancyWM`.
+
+## 0.5 Workspace indicator
+
+I created a simple workspace indicator python script that shows the current workspace in your systemtray. 
+TODO: add install instructions.
+
 ---
 
 # 1. FancyWM Configuration
@@ -70,8 +98,8 @@ AHK handles everything FancyWM cannot:
 AHK also uses `VirtualDesktopAccessor.dll` for direct workspace control without the buggy Windows hotkeys.
 
 ---
-
-# 3. Hover-to-Focus (Sloppy Focus)
+Hover-to-Focus 
+# 3. Sloppy Focus
 
 FancyWM cannot manage focus-follows-mouse.  
 AHK cannot do it reliably either due to Windows input restrictions.
