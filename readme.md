@@ -100,6 +100,8 @@ AHK also uses `VirtualDesktopAccessor.dll` for direct workspace control without 
 ---
 Hover-to-Focus 
 # 3. Sloppy Focus
+Hover-to-Focus 
+# 3. Sloppy Focus
 
 FancyWM cannot manage focus-follows-mouse.  
 AHK cannot do it reliably either due to Windows input restrictions.
